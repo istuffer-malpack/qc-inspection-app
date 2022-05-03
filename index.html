@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>QC | Malpack</title>
+	<link rel="icon" type="image/x-icon" href="./img/malpack.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+	<link rel="stylesheet" href="./css/custom-style.css">
+	
+	<script>
+		//'use strict'
+		//window.$ = window.jQuery = require('jquery')
+		//window.Tether = require('tether')
+	</script>
+	
+  </head>
+  <body ng-app="app" ng-controller="overviewController as view" ng-cloak>
+  <section class="is-centered p-3">
+	 <a class="img malpack-logo" href="">
+      <img src="./img/malpack-logo.png" width="152" height="78">
+    </a>
+  </section>	
+	<nav class="tabs is-boxed is-fullwidth is-large">
+        <div class="container">
+          <ul class="has-text-weight-bold">
+            <li class="tab is-active" onclick="openTab(event,'Main')"><a>MAIN</a></li>
+            <li class="tab" onclick="openTab(event,'Line1')"><a>LINE 1</a></li>
+            <li class="tab" onclick="openTab(event,'Line2')"><a>LINE 2</a></li>
+			<li class="tab" onclick="openTab(event,'Line3')"><a>LINE 3</a></li>
+			<li class="tab" onclick="openTab(event,'Line4')"><a>LINE 4</a></li>
+			<li class="tab" onclick="openTab(event,'Line5')"><a>LINE 5</a></li>
+			<li class="tab" onclick="openTab(event,'Line6')"><a>LINE 6</a></li>
+			<li class="tab" onclick="openTab(event,'Line7')"><a>LINE 7</a></li>
+			<li class="tab" onclick="openTab(event,'Line8')"><a>LINE 8</a></li>
+			<li class="tab" onclick="openTab(event,'Line9')"><a>LINE 9</a></li>
+          </ul>
+        </div>
+    </nav>
+		<div class="container section p-4">
+			<div id="Main" class="content-tab" >
+				<article class="message is-warning is-hidden">
+				  <div class="message-header">
+					<p>Message</p>
+					<button class="delete" aria-label="delete"></button>
+				  </div>
+				  <div class="message-body">
+				  
+					<p ng-repeat="x in schedule | orderBy : 'ScheduledLine'" ng-if="isStartedOrDone(x.UniquifierKey).indexOf('started') > -1">{{x.ScheduledLine}} {{x.ORDNUMBER}} has started on {{(isStartedOrDone(x.UniquifierKey).split('/')[1]) | date:'MMM dd yyyy hh:mm a'}}</p>
+					
+				  </div>
+				</article>
+				<div class="block">
+					<input type="text" ng-model="search" class="search-text input is-medium" value="" placeholder="Search">
+					<div class="table-container">
+					  <table class="table is-narrow is-hoverable" ng-show="!loadingInfo">
+							<thead class="header" >
+								<tr class="has-text-centered">									
+									<th>LINE</th>
+									<th>Product</th>
+									<th>Customer</th>
+									<th>Order Number</th>
+									<th>No of Skids</th>
+									<th>Start - End</th>
+									<th></th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>								
+								<tr class="has-text-centered" ng-repeat="x in schedule | filter : search | orderBy : 'ScheduledLine'" id="{{x.UniquifierKey}}">									
+									<td>{{x.ScheduledLine}}</td>
+									<td>{{x.ITEM}}</td>
+									<td >{{(x.CUSTOMER == 0) ? 'STOCK' : x.CUSTOMER}}</td>									
+									<td>{{x.ORDNUMBER}}/{{x.PONUMBER}}</td>
+									<td>{{x.SkidQTY}} Skid{{(x.SkidQTY > 1) ? 's' : ''}}</td>
+									<td>{{fixDate(x.StartDate) | date: 'MMM dd hh:mm a'}} - {{fixDate(x.EndDate) | date: 'MMM dd hh:mm a'}}</td>
+									<td><button class="button is-info has-text-weight-bold" ng-click="inspectQc(x,x.ScheduledLine)">Inspect</button></td>									
+									<td><button class="button is-warning has-text-weight-bold js-modal-trigger" data-target="followUpModal" ng-click="followUpQc(x,x.ScheduledLine)">Follow up</button></td>
+								</tr>																										
+							</tbody>
+						</table>
+					</div>
+				</div>			
+			</div>
+			<div id="Line1" class="content-tab" style="display:none">
+				<form class="box qc-form line1" method="get">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineOneQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineOneQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineOneQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineOneQc.ORDNUMBER}}{{(lineOneQc.ORDNUMBER) ? '/' : ''}}{{lineOneQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineOneQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineOneQc.CUSTOMER,lineOneQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineOneQc.CUSTOMER,lineOneQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineOneQc.ScheduledLine,lineOneQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineOneQc.ScheduledLine,lineOneQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineOneQc.ScheduledLine,lineOneQc.ITEM,lineOneQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineOneQc.CUSTOMER,lineOneQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineOneQc.CUSTOMER,lineOneQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects" value="">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineOneQc.ScheduledLine,lineOneQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineOneQc.ITEM).indexOf('-H-') > -1 && (lineOneQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line1')">Submit</button>
+					</div>
+				</form>
+			</div>
+			<div id="Line2" class="content-tab" style="display:none">
+				<form class="box qc-form line2">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineTwoQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineTwoQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineTwoQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineTwoQc.ORDNUMBER}}/{{lineTwoQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineTwoQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineTwoQc.CUSTOMER,lineTwoQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineTwoQc.CUSTOMER,lineTwoQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineTwoQc.ScheduledLine,lineTwoQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineTwoQc.ScheduledLine,lineTwoQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineTwoQc.ScheduledLine,lineTwoQc.ITEM,lineTwoQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineTwoQc.CUSTOMER,lineTwoQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineTwoQc.CUSTOMER,lineTwoQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineTwoQc.ScheduledLine,lineTwoQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineTwoQc.ITEM).indexOf('-H-') > -1 && (lineTwoQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line2')">Submit</button>
+					</div>
+				</form>
+			</div>
+			<div id="Line3" class="content-tab" style="display:none">
+				<form class="box qc-form line3">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineThreeQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineThreeQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineThreeQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineThreeQc.ORDNUMBER}}/{{lineThreeQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineThreeQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineThreeQc.CUSTOMER,lineThreeQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineThreeQc.CUSTOMER,lineThreeQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineThreeQc.ScheduledLine,lineThreeQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineThreeQc.ScheduledLine,lineThreeQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineThreeQc.ScheduledLine,lineThreeQc.ITEM,lineThree.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineThreeQc.CUSTOMER,lineThreeQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineThreeQc.CUSTOMER,lineThreeQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineThreeQc.ScheduledLine,lineThreeQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineThreeQc.ITEM).indexOf('-H-') > -1 && (lineThreeQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line3')">Submit</button>
+					</div>
+				</form>
+			</div>
+			<div id="Line4" class="content-tab" style="display:none">
+				<form class="box qc-form line4">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineFourQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineFourQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineFourQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineFourQc.ORDNUMBER}}/{{lineFourQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineFourQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineFourQc.CUSTOMER,lineFourQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineFourQc.CUSTOMER,lineFourQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineFourQc.ScheduledLine,lineFourQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineFourQc.ScheduledLine,lineFourQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineFourQc.ScheduledLine,lineFourQc.ITEM,lineFourQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineFourQc.CUSTOMER,lineFourQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineFourQc.CUSTOMER,lineFourQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									 <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									 <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineFourQc.ScheduledLine,lineFourQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineFourQc.ITEM).indexOf('-H-') > -1 && (lineFourQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line4')">Submit</button>
+					</div>
+				</form>   
+			</div>
+			<div id="Line5" class="content-tab" style="display:none">
+				<form class="box qc-form line5">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineFiveQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineFiveQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineFiveQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineFiveQc.ORDNUMBER}}/{{lineFiveQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineFiveQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineFiveQc.CUSTOMER,lineFiveQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineFiveQc.CUSTOMER,lineFiveQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineFiveQc.ScheduledLine,lineFiveQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineFiveQc.ScheduledLine,lineFiveQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineFiveQc.ScheduledLine,lineFiveQc.ITEM,lineFiveQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineFiveQc.CUSTOMER,lineFiveQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineFiveQc.CUSTOMER,lineFiveQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineFiveQc.ScheduledLine,lineFiveQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineFiveQc.ITEM).indexOf('-H-') > -1 && (lineFiveQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line5')">Submit</button>
+					</div>
+				</form>
+			</div>
+			<div id="Line6" class="content-tab" style="display:none">
+				<form class="box qc-form line6">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineSixQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineSixQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineSixQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineSixQc.ORDNUMBER}}/{{lineSixQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineSixQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineSixQc.CUSTOMER,lineSixQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineSixQc.CUSTOMER,lineSixQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineSixQc.ScheduledLine,lineSixQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineSixQc.ScheduledLine,lineSixQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineSixQc.ScheduledLine,lineSixQc.ITEM,lineSixQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineSixQc.CUSTOMER,lineSixQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineSixQc.CUSTOMER,lineSixQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineSixQc.ScheduledLine,lineSixQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineSixQc.ITEM).indexOf('-H-') > -1 && (lineSixQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line6')">Submit</button>
+					</div>
+				</form>
+			</div>
+			<div id="Line7" class="content-tab" style="display:none">
+				<form class="box qc-form line7">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineSevenQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineSevenQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineSevenQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineSevenQc.ORDNUMBER}}/{{lineSevenQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineSevenQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineSevenQc.CUSTOMER,lineSevenQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineSevenQc.CUSTOMER,lineSevenQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineSevenQc.ScheduledLine,lineSevenQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineSevenQc.ScheduledLine,lineSevenQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineSevenQc.ScheduledLine,lineSevenQc.ITEM,lineSevenQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineSevenQc.CUSTOMER,lineSevenQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineSevenQc.CUSTOMER,lineSevenQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineSevenQc.ScheduledLine,lineSevenQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineSevenQc.ITEM).indexOf('-H-') > -1 && (lineSevenQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line7')">Submit</button>
+					</div>
+				</form>  
+			</div>
+			<div id="Line8" class="content-tab" style="display:none">
+				<form class="box qc-form line8">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineEightQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineEightQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineEightQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineEightQc.ORDNUMBER}}/{{lineEightQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineEightQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineEightQc.CUSTOMER,lineEightQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineEightQc.CUSTOMER,lineEightQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineEightQc.ScheduledLine,lineEightQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineEightQc.ScheduledLine,lineEightQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineEightQc.ScheduledLine,lineEightQc.ITEM,lineEightQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineEightQc.CUSTOMER,lineEightQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineEightQc.CUSTOMER,lineEightQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) ({{getMachineSettings('standardLimits',lineEightQc.ScheduledLine,lineEightQc.ITEM)}})</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineEightQc.ITEM).indexOf('-H-') > -1 && (lineEightQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line8')">Submit</button>
+					</div>
+				</form>
+			</div>
+			<div id="Line9" class="content-tab" style="display:none">
+				<form class="box qc-form line9">
+					<div class="columns">
+						<div class="column has-text-centered">
+							<p class="title is-size-4 is-uppercase has-text-weight-bold">QC Inspection Form</p>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Line:</label>
+								<input type="text" class="input is-medium" name="line" id="line1Line" value="{{lineNineQc.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{lineNineQc.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Customer:</label>
+								<input type="text" class="input is-medium" name="customer" value="{{lineNineQc.CustomerName}}">
+							</div>								
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{lineNineQc.ORDNUMBER}}/{{lineNineQc.PONUMBER}}">
+							</div>	
+							<div class="column">
+								<label>Skid No:</label>
+								<input type="text" class="input is-medium" name="skidNo" value="{{lineNineQc.SkidQTY}}" ng-model="skidNo">
+							</div>
+																			
+						</div>
+						<div class="columns">
+							<div class="column is-2">
+								<button class="button job-order-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('joUpload')">Upload File</button> 
+								<input type="hidden" name="joUpload" class="jobOrderFiles" value="">
+							</div>
+							<div class="column">
+								<div class="joUpload"></div>
+							</div>
+						</div>
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<div class="is-block">
+									<label>Sample Roll#:</label>
+									<input type="text" class="input is-medium" name="sampleRoll">
+								</div>
+								<div class="is-block">
+									<label>Film Width, (mm):</label>
+									<input type="text" class="input is-medium" name="filmWidth">
+								</div>								
+							</div>	
+							<div class="column">
+								<div class="is-block">
+									<label>Core Size:</label>
+									<input type="text" class="input is-medium" list="coreSizes" name="coreSize" value="{{getBOMInfo(lineNineQc.CUSTOMER,lineNineQc.ITEM,'CORE')}}">
+								</div>
+								<div class="is-block">
+									<label>Moisture Content, %:</label>
+									<input type="text" class="input is-medium" name="moistureContent">
+								</div>	
+							</div>
+							<div class="column">
+								<div class="is-block">
+									<label>Target Weight:</label>
+									<input type="text" class="input is-medium" name="tgtWt" value="{{getBOMInfo(lineNineQc.CUSTOMER,lineNineQc.ITEM,'UNIT_WT')}}">
+								</div>								
+								<div class="is-block">
+									<label>Actual Weight:</label>
+									<input type="text" class="input is-medium" name="actWt">
+								</div>								
+							</div>																			
+						</div>
+						<div class="columns">
+							<div class="control px-3">
+								<label for="coreExt">Is core extension within the tolerable limit?</label>
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="yes">Yes</label>	
+								<label class="radio"><input class="is-medium" type="radio" name="coreExt" value="no">No</label>
+							</div>
+						</div>
+					</div>
+					<div class="block">						
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Machine Settings / Product Recipe</p>
+								
+									<div class="control is-block">
+										<label>Line Speed/Output:</label>
+										<p>Last run: {{getMachineSettings('speed',lineNineQc.ScheduledLine,lineNineQc.ITEM)}}</p>								
+									</div>
+									<div class="control is-block">
+										<label>Vacuum Settings (VB1/VB3/VB2):</label>
+										<p>Last run: {{getMachineSettings('vacuum',lineNineQc.ScheduledLine,lineNineQc.ITEM)}}</p>									
+									</div>
+									<div class="control is-block">
+										<button class="button js-modal-trigger is-warning" data-target="historyModal" ng-click="viewHistory(lineNineQc.ScheduledLine,lineNineQc.ITEM,lineNineQc.CUSTOMER)">view history</button>
+									</div>
+							</div>																			
+						
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Packaging Inspection</p>
+								<div class="columns">
+									<div class="control column">
+										<label>Pallet Size:</label>
+										<input type="text" class="input is-medium" list="palletSizes" name="palletSize" value="{{getBOMInfo(lineNineQc.CUSTOMER,lineNineQc.ITEM,'PALLET')}}">
+									</div>	
+									<div class="control column">
+										<label>Box/Case:</label>
+										<input type="text" class="input is-medium" list="boxCases" name="boxCase" value="{{getBOMInfo(lineNineQc.CUSTOMER,lineNineQc.ITEM,'BOX_CARDBOARD')}}">
+									</div>	
+								</div>
+								<div class="control">
+									<label for="packagingInspection">									
+										> Skid labels must match the job order.<br> 
+										> Bar codes and placards must place at the sides of pallet. <br>
+										> Each pallet must properly wrap. <br>
+										> Check "Date Stamp","Tint Problem","Print Problem" on boxes.<br>
+									</label><br>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="yes">Yes</label>
+									  <label class="radio"><input class="is-medium" type="radio" name="packagingInspection" value="no">No</label>
+								</div>
+							</div>								
+						</div>																											
+					</div>					
+					<div class="block">					
+						<div class="columns">
+							<div class="column">
+								<p class="title is-size-4 is-uppercase">Film Properties</p>
+									<div class="control">
+										<label for="packagingInspection">Quality Test</label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="pass">Pass </label>
+										  <label class="radio"><input class="is-medium" type="radio" name="qualitytest" value="fail">Fail </label>
+									 </div>
+									<div class="control">
+										<label>Reason for failing:</label>
+										<input type="hidden" name="qualityDefects" class="qualityDefects">
+										<button type="button" class="collapsible"></button>
+										<div class="content collapse">
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Core not centered">Core not centered</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film consistency">Film Consistency</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film breaking">Film Breaking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Holes">Holes</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gels/black specks">Gels/Black specks</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Die lines">Die lines</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film splitting">Film Splitting</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film tearing">Film Tearing</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Dispersion issue">Dispersion Issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Cling issue">Cling issue</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film blocking">Film Blocking</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad roll geometry">Bad Roll Geometry</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Bad edge">Bad edge/cut</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Gauge band">Gauge Band</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Contamination">Contamination</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Wrinkles">Wrinkles</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes" value="Film appearance">Film Appearance 
+											(Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)</label>
+											<label class="checkbox"><input type="checkbox" class="checkboxes checkother" name="other" value="other-{{otherDefects}}">Other:
+											<input type="text" class="input is-small other" ng-model="otherDefects"></label>
+										</div>
+									</div>	
+									<div class="columns">
+										<div class="column">
+											<div class="is-block">
+												<label>Ultimate Test: <span>(%Stretch/Max Force) [{{getMachineSettings('standardLimits',lineNineQc.ScheduledLine,lineNineQc.ITEM)}}]</span></label>
+												<input type="text" class="input is-medium" name="ultimate">
+											</div>
+											<div class="is-block" ng-if="(lineNineQc.ITEM).indexOf('-H-') > -1 && (lineNineQc.ITEM).indexOf('VX-H') <= -1">										
+												<label>Film Stiffnes: <span>(for hand film)</span></label>
+												<input type="text" class="input is-medium" name="filmStiffness">
+											</div>
+										</div>
+									</div>
+									<div class="columns">
+										<div class="column is-3">
+											<button class="button test-file is-info js-modal-trigger" data-target="uploadFileModal" onclick="addFlag('testUpload')">Upload File</button> 
+											<input type="hidden" name="testUpload" class="testFiles" value="">
+										</div>
+										<div class="column testUpload"></div>
+									</div>
+							</div>
+							<div class="column">
+								<div class="columns">
+								<div class="column">
+									<label>Opacity: <span>(For colored film)</span></label>
+									<input type="text" class="input is-medium" name="opacity">
+								</div>
+								<div class="column">
+									<label>Cling:</label>
+									<input type="text" class="input is-medium" name="cling">
+								</div>
+								</div>
+								<div class="columns">
+									<div class="column">
+										<label>Tear Propagation Test:</label>
+										<input type="text" class="input is-medium" name="tearTest">
+									</div>									
+								</div>	
+								<div class="columns">
+									<div class="column">
+										<label>Pallet Wrapper Test:</label>
+										<textarea name="palletWrapperTest" class="textarea" placeholder=""></textarea>
+									</div>
+								</div>								
+							</div>													
+						</div>						
+						<div class="columns">
+							<div class="column">
+								<label>Note:</label>
+								<textarea name="note" class="textarea" placeholder=""></textarea>
+							</div>
+						</div>					
+					</div>
+					<div class="block">
+						<div class="columns">
+							<div class="column">
+								<label>Inspected By:</label>
+								<input type="text" list="inspectedBy" class="input is-medium" name="inspectedBy">																
+								<datalist id="inspectedBy">									
+									<option value="Hemen">
+									<option value="Sajid">
+									<option value="Vatsal">
+									<option value="Jishnu">
+									<option value="Dishant">
+								</datalist>								
+							</div>
+							<div class="column">
+								<label>Shift:</label>
+								<input type="text" list="workShift" class="input is-medium" name="workShift">
+									<datalist id="workShift">
+										<option value=""></option>
+										<option value="Shift A">
+										<option value="Shift B">
+										<option value="Shift C">
+										<option value="Shift D">
+									</datalist>
+							</div>
+							<div class="column">
+								<label>Supervisor:</label>
+								<input type="text" list="supervisor" class="input is-medium" name="supervisor">								
+								<datalist id="supervisor">
+									<option value="Baji">
+									<option value="Abdullah">
+									<option value="Ali">
+									<option value="Abdulla CK">
+								</datalist>								
+							</div>
+						</div>
+					</div>
+					<div class="">
+						<button type="button" class="button is-success-dark formSubmit" ng-click="submitReport('line9')">Submit</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<div id="uploadFileModal" class="modal">
+		  <div class="modal-background"></div>
+		  <div class="modal-card">
+			<header class="modal-card-head">
+			 <p class="modal-card-title is-uppercase has-text-white has-text-weight-bold">&nbsp;&nbsp;&nbsp;&nbsp;</p>
+				 <button class="delete is-large"></button>
+			</header>
+			<div class="modal-card-body has-background-white is-align-items-center">
+				<form class="form" id="form">
+					<input class="input" name="file" id="uploadfile" type="file">					
+					<input class="input" name="filename" id="filename" type="hidden">
+					<button class="button is-primary" id="submit" type="button" onclick="uploadFile()">Upload</button>
+				</form>				
+			</div>
+		  </div>		  
+		</div>
+		<div id="historyModal" class="modal">
+			  <div class="modal-background disabled-escape"></div>
+			  <div class="modal-card">
+				<header class="modal-card-head has-background-info">
+				 <p class="modal-card-title is-uppercase has-text-white has-text-weight-bold">&nbsp;&nbsp;&nbsp;&nbsp;</p>
+					 <button class="delete is-large"></button>
+				</header>
+				<div class="modal-card-body has-background-white is-align-items-center">
+							<div class="table-container">
+							  <table class="table is-narrow is-hoverable">
+									<thead class="header" >
+										<tr class="has-text-centered">
+											
+											<th>TimeStamp</th>
+											<th>LINE</th>
+											<th>Customer</th>
+											<th>PRODUCT</th>
+											<th>LINE SPEED/OUTPUT</th>
+											<th>VACUUM SETTINGS</th>
+											<th>WEIGHT</th>
+											<th>%ULTIMATE/MAX FORCE</th>
+										</tr>
+									</thead>
+									<tbody>								
+										<tr class="has-text-centered" ng-repeat="x in qcHistory">									
+											<td>{{x.Timestamp | date : 'MMM dd yyyy'}}</td>
+											<td>{{x.LINE}}</td>									
+											<td >{{x.CUSTOMER}}</td>
+											<td>{{x.PRODUCT_CODE}}</td>									
+											<td>{{x.LINE_SPEED}}</td>
+											<td>{{x.VACUUM_SETTINGS}}</td>	
+											<td>{{x.ACTUAL_WT}}</td>
+											<td>{{x.BREAKPOINT}}{{(x.BREAKPOINT) ? '/' : ''}}{{x.FORCE}}</td>
+										</tr>																										
+									</tbody>
+								</table>
+							</div>
+					<div class="block">
+						<button class="button js-modal-trigger is-black" data-target="recipeModal" ng-click="viewRecipe(prodC,machineL,custID)">view recipe</button>
+					</div>							
+				</div>				
+			  </div>	  
+		</div>
+		<div id="recipeModal" class="modal">
+		  <div class="modal-background disabled-escape"></div>
+		  <div class="modal-card">
+			<header class="modal-card-head has-background-danger-dark">
+			 <p class="modal-card-title is-uppercase has-text-white has-text-weight-bold">Product Recipe</p>
+				 <button class="delete is-large"></button>
+			</header>
+			<div class="modal-card-body has-background-white is-align-items-center">
+				<div class="table-container">
+					<table class="table" id="recipeCode">					
+					</table>
+				</div>
+			</div>
+		  </div>		  
+		</div>
+		
+		<div id="followUpModal" class="modal">
+		  <div class="modal-background"></div>
+		  <div class="modal-card">
+			<header class="modal-card-head has-background-danger-dark">
+			 <p class="modal-card-title is-uppercase has-text-white has-text-weight-bold">Follow Up Inspection</p>
+				 <button class="delete is-large"></button>
+			</header>
+			<div class="modal-card-body has-background-white is-align-items-center">			
+				<form class="box follow-up-form control" id="correctiveActionForm">
+					<div class="columns">
+						<div class="column is-2">
+								<label>Line:</label>								
+								<input type="text" class="input is-medium" name="line" id="machineLine" value="{{followUpData.ScheduledLine}}">
+							</div>
+							<div class="column">
+								<label>Product:</label>
+								<input type="text" class="input is-medium" name="product" value="{{followUpData.ITEM}}">
+							</div>
+							<div class="column">
+								<label>Order/PO Number:</label>
+								<input type="text" class="input is-medium" name="ord_po_number" value="{{followUpData.ORDNUMBER}}/{{followUpData.PONUMBER}}">
+							</div>	
+						</div>
+					<div class="columns">
+						<div class="column">
+							<label>Customer:</label>
+							<input type="text" class="input is-medium" name="customer" value="{{followUpData.CustomerName}}">
+						</div>	
+						<div class="column">
+							<label>Skid No:</label>
+							<input type="text" class="input is-medium" name="skidNo" value="{{followUpData.SkidQTY}}" ng-model="skidNo">
+						</div>				
+					</div>
+					<div class="columns">
+					<div class="column">
+						<label>Reason for follow up:</label>
+						<input type="text" class="input is-medium" name="reasonForFollowUp" value="">
+					</div>	
+						<div class="column">
+						<label>Result:</label>
+						<input type="text" class="input is-medium" name="result" value="">
+						</div>
+					</div>
+					<div class="columns">
+					<div class="column">
+						<label>Corrective action taken:</label>
+						<textarea name="correctiveAction" class="textarea" placeholder=""></textarea>
+					</div>					
+					</div>
+					<div class="column">
+						<button class="button is-warning" id="correctiveActionSubmit" ng-click="correctiveActionSubmit()">Submit</button>
+					</div>
+				</form>				
+			</div>
+		  </div>		  
+		</div>
+		
+		
+		
+		<datalist id="coreSizes">
+			<option value="140 x 13">
+			<option value="140 x 13.75">
+			<option value="140 x 15">
+			<option value="140 x 16">
+			<option value="140 x 17">
+			<option value="140 x 18.125">
+			<option value="140 x 18.5">
+			<option value="140 x 19.75">
+			<option value="140 x 20.75">
+			<option value="250 x 20.19 WHITE">
+			<option value="250 x 20.75 BLUE">
+			<option value="250 x 20.75 BROWN NO ARROW">
+			<option value="250 x 29.5 BLUE">
+			<option value="250 x 29.645">
+			<option value="250 x 29.645 WHITE">
+			<option value="250 x 30.625">
+			<option value="250 x 30.625 BLUE">
+			<option value="250 x 41 BLUE">
+			<option value="250 x 51 BLUE">
+			<option value="360 x 51 PURPLE">
+			<option value="250 x 61 BLUE">
+			<option value="250 x 71 BLUE">
+			<option value="285 x 21 ULINE">
+			<option value="285 x 31 ULINE">
+			<option value="360 x 10.5 PURPLE">
+			<option value="360 x 10.75 PURPLE">
+			<option value="360 x 13 PURPLE">
+			<option value="360 x 16 PURPLE">
+			<option value="360 x 18 PURPLE">
+			<option value="360 x 20.75 PURPLE">
+			<option value="360 x 30.625 PURPLE">
+			<option value="250 x 30.625 BROWN">
+			<option value="250 x 20.75 BROWN">
+			<option value="250 x 30.75 BROWN">			
+		</datalist>
+		<datalist id="palletSizes">
+			<option value="42 X 42">
+			<option value="44 X 44">
+			<option value="45 X 45">
+			<option value="48 X 40">
+			<option value="42 X 42 (H/W)">
+			<option value="48 X 40 (H/W)">
+			<option value="48 X 40 (BLUE CHEP PALLET)">
+			<option value="52 X 40">
+			<option value="62 X 40">
+			<option value="72 X 40">
+		</datalist>
+		<datalist id="boxCases">
+			<option value="MAX 18 1/8">
+			<option value="MAX 17 1/8">
+			<option value="MAX 15 1/8">
+			<option value="MAX 13 1/8">
+			<option value="18  1/8 REG.">
+			<option value="16 1/8 REG.">
+			<option value="15 1/8 REG.">
+			<option value="13 7/8 REG.">
+			<option value="S - 18837/8 BX  13  7/8 NEW TECH ULINE">
+			<option value="S - 5316BX   BLACK   15 X 80 X 1500 ULINE">
+			<option value="S - 353BX BLACK 18 X 80GA X 1500  ULINE">
+			<option value="S - 6019BX  WHITE  18 X 80 X 1500  ULINE">
+			<option value="S - 14923BX RED/BLUE 18 X 120GA X 1000 ULINE">
+			<option value="S - 2900BX COLOURS 18 X 80GA X 1500  ULINE">
+			<option value="S - 5317BX BLACK  18 X 100GA X 1500 ULINE">
+			<option value="S - 14000BX BLACK 18 X 120GA X 1000  ULINE">
+			<option value="WHITE PLAT 18 1/8">
+			<option value="WHITE PLAT 17 1/8">
+			<option value="WHITE PLAT 15 1/8">
+			<option value="WHITE PLAT 13 1/8">
+			<option value="[IPS  14]   15  1/8  CORNERSTONE">
+			<option value="[IPS  17.7]  18  1/8  CORNERSTONE">
+			<option value="ULTRA HIGH P WRAP 14 SHIPPERS (NEW)">
+			<option value="ULTRA HIGH P WRAP 16 SHIPPERS (NEW)">
+			<option value="ULTRA HIGH P WRAP 17.7 SHIPPERS (NEW)">
+			<option value="64731 - SAMUEL PLAT-MAX">
+			<option value="WRAPSODY 13 1/8">
+			<option value="WRAPSODY JEAN CARTIER 12 1/8 X 12 1/8 X 15 7/8">
+			<option value="10-1/2 x 10-1/2 x 17- 1/8  HUGHES">
+			<option value="10-1/2 x 10-1/2 x 18 -1/8  HUGHES">
+			<option value="ATLASC 18 1/8">
+			<option value="ATLASC 17 1/8">
+			<option value="ATLASC 15 1/8 (Brafasco Box)">
+			<option value="ATLASC 13 1/8">
+			<option value="K1B204E">
+			<option value="K1C256">
+			<option value="K1C257">
+			<option value="K1C258">
+			<option value="K1B4048">
+			<option value="K1C4141">
+			<option value="K1C4343">
+			<option value="K1C4545">
+			<option value="VMAXX BULK PAD SMALL">
+			<option value="20in DOUBLE TOP">
+			<option value="30in DOUBLE TOP">
+			<option value="CRADLE CW10">
+			<option value="CRADLE CW12/4">
+			<option value="CRADLE CW16/3">
+			<option value="4 X 5 COVER AND BOTTOM (MACHINE WRAP LIDS)">
+		</datalist>
+		<datalist>
+			<option value="Core not centered">
+			<option value="Film Consistency">
+			<option value="Film Breaks">
+			<option value="Holes">
+			<option value="Gels/Black specks">
+			<option value="Die lines">
+			<option value="Film Splitting">
+			<option value="Film Tearing">
+			<option value="Dispersion Issue">
+			<option value="Cling issue">
+			<option value="Film Blocking">
+			<option value="Bad Roll Geometry">
+			<option value="Bad edge/cut">
+			<option value="Gauge Band">
+			<option value="Contamination">
+			<option value="Wrinkles">
+			<option value="Film Appearance (Hazy/Cloudy/White Streaks/Shark Skin/Orange Peel/Vacuum Marks)">
+		</datalist>
+    <script src="./js/jquery-3.6.0.min.js"></script>
+	<script src="./js/AngularJSv1.8.2.min.js"></script>
+	<script src="./js/bom.js"></script>
+	<script src="./js/app.js"></script>
+	<script src="./js/functions.js"></script>
+ 
+  </body>
+</html>
